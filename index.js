@@ -34,6 +34,20 @@ app.get("/api/rankings-clans", async (req, res) => {
   }
 });
 
+// جدید: رتبه‌بندی Path of Legends به‌تفکیک کشور
+app.get("/api/pathoflegend", async (req, res) => {
+  const { locationId, limit = 1000 } = req.query;
+  if (!locationId) return res.status(400).json({ error: "locationId لازم است" });
+  try {
+    const { status, data } = await callApi(
+      `/locations/${locationId}/pathoflegend/players?limit=${limit}`
+    );
+    res.status(status).json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const cache = {};
 const CACHE_TTL = 60 * 60 * 1000;
 
