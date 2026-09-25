@@ -1,11 +1,11 @@
 {
   "name": "cr-rankings-api",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "start": "node index.js"
+    "deploy": "wrangler deploy"
   },
-  "dependencies": {
-    "express": "^4.19.2"
+  "devDependencies": {
+    "wrangler": "^4.0.0"
   }
 }
