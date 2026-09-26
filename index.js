@@ -23,10 +23,12 @@ export default {
     const path = url.pathname;
 
     try {
+      // Countries
       if (path === "/api/locations") {
         return await callApi("/locations", env);
       }
 
+      // Normal clan rankings
       if (path === "/api/rankings-clans") {
         const locationId = url.searchParams.get("locationId");
         const limit = url.searchParams.get("limit") || "100";
@@ -42,11 +44,33 @@ export default {
         }
 
         return await callApi(
-          `/locations/${locationId}/rankings/clans?limit=${limit}`,
+          `/locations/${encodeURIComponent(locationId)}/rankings/clans?limit=${limit}`,
           env
         );
       }
 
+      // Clan Wars rankings — Top Clans
+      if (path === "/api/rankings-clanwars") {
+        const locationId = url.searchParams.get("locationId");
+        const limit = url.searchParams.get("limit") || "500";
+
+        if (!locationId) {
+          return new Response(
+            JSON.stringify({ error: "locationId لازم است" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        return await callApi(
+          `/locations/${encodeURIComponent(locationId)}/rankings/clanwars?limit=${limit}`,
+          env
+        );
+      }
+
+      // Path of Legends
       if (path === "/api/pathoflegend") {
         const locationId = url.searchParams.get("locationId");
         const limit = url.searchParams.get("limit") || "1000";
@@ -62,7 +86,34 @@ export default {
         }
 
         return await callApi(
-          `/locations/${locationId}/pathoflegend/players?limit=${limit}`,
+          `/locations/${encodeURIComponent(locationId)}/pathoflegend/players?limit=${limit}`,
+          env
+        );
+      }
+
+      // Available player leaderboards
+      if (path === "/api/leaderboards") {
+        return await callApi("/leaderboards", env);
+      }
+
+      // Specific player leaderboard
+      if (path.startsWith("/api/leaderboard/")) {
+        const leaderboardId = path.split("/").pop();
+
+        if (!leaderboardId) {
+          return new Response(
+            JSON.stringify({ error: "leaderboardId لازم است" }),
+            {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+
+        const limit = url.searchParams.get("limit") || "500";
+
+        return await callApi(
+          `/leaderboard/${encodeURIComponent(leaderboardId)}?limit=${limit}`,
           env
         );
       }
