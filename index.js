@@ -142,10 +142,32 @@ export default {
         } else {
           const encoded = encodeURIComponent(q);
 
-          const [clans, tournaments] = await Promise.allSettled([
+          const [players, clans, tournaments] = await Promise.allSettled([
+            callApi(`/locations/global/rankings/players?limit=1000`, env),
             callApi(`/clans?name=${encoded}&limit=10`, env),
             callApi(`/tournaments?name=${encoded}&limit=10`, env),
           ]);
+
+          if (players.status === "fulfilled" && players.value.ok) {
+            try {
+              const data = await players.value.json();
+              const list = Array.isArray(data) ? data : (data.items || []);
+              const needle = q.toLocaleLowerCase();
+
+              for (const entry of list) {
+                const name = String(entry.name || "");
+                if (name.toLocaleLowerCase().includes(needle)) {
+                  results.push({
+                    type: "player",
+                    tag: entry.tag,
+                    name,
+                    data: entry,
+                  });
+                }
+                if (results.filter((x) => x.type === "player").length >= 10) break;
+              }
+            } catch {}
+          }
 
           for (const item of [clans, tournaments]) {
             if (item.status !== "fulfilled" || !item.value.ok) continue;
