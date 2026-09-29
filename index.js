@@ -112,9 +112,9 @@ export default {
           const tag = encodeURIComponent(normalizedTag);
 
           const requests = [
-            ["player", `/players/%23${tag}`],
-            ["clan", `/clans/%23${tag}`],
-            ["tournament", `/tournaments/%23${tag}`],
+            ["player", `/players/${tag}`],
+            ["clan", `/clans/${tag}`],
+            ["tournament", `/tournaments/${tag}`],
           ];
 
           const settled = await Promise.allSettled(
@@ -170,7 +170,7 @@ export default {
             } catch {}
           }
 
-          for (const item of [clans, tournaments]) {
+          for (const [type, item] of [["clan", clans], ["tournament", tournaments]]) {
             if (item.status !== "fulfilled" || !item.value.ok) continue;
 
             try {
@@ -179,7 +179,7 @@ export default {
 
               for (const entry of list.slice(0, 10)) {
                 results.push({
-                  type: item === clans ? "clan" : "tournament",
+                  type,
                   tag: entry.tag,
                   name: entry.name || "Unknown",
                   data: entry,
