@@ -108,7 +108,8 @@ export default {
         const results = [];
 
         if (tagPattern.test(cleanTag)) {
-          const tag = encodeURIComponent(cleanTag);
+          const normalizedTag = `#${cleanTag}`;
+          const tag = encodeURIComponent(normalizedTag);
 
           const requests = [
             ["player", `/players/%23${tag}`],
