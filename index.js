@@ -92,6 +92,88 @@ export default {
 
 
       // =========================================================
+      // SEARCH
+      // =========================================================
+
+      if (path === "/api/search") {
+        const q = (url.searchParams.get("q") || "").trim();
+
+        if (!q) {
+          return errorResponse("query لازم است");
+        }
+
+        const cleanTag = q.replace(/^#/, "").toUpperCase();
+        const tagPattern = /^[0289PYLQGRJCUV-]{3,15}$/;
+
+        const results = [];
+
+        if (tagPattern.test(cleanTag)) {
+          const tag = encodeURIComponent(cleanTag);
+
+          const requests = [
+            ["player", `/players/%23${tag}`],
+            ["clan", `/clans/%23${tag}`],
+            ["tournament", `/tournaments/%23${tag}`],
+          ];
+
+          const settled = await Promise.allSettled(
+            requests.map(async ([type, apiPath]) => {
+              const response = await fetch(`${BASE_URL}${apiPath}`, {
+                headers: { Authorization: `Bearer ${env.CR_API_TOKEN}` },
+              });
+
+              if (!response.ok) throw new Error("not found");
+
+              return { type, data: await response.json() };
+            })
+          );
+
+          for (const item of settled) {
+            if (item.status === "fulfilled" && item.value?.data) {
+              const data = item.value.data;
+              results.push({
+                type: item.value.type,
+                tag: data.tag || `#${cleanTag}`,
+                name: data.name || "Unknown",
+                data,
+              });
+            }
+          }
+        } else {
+          const encoded = encodeURIComponent(q);
+
+          const [clans, tournaments] = await Promise.allSettled([
+            callApi(`/clans?name=${encoded}&limit=10`, env),
+            callApi(`/tournaments?name=${encoded}&limit=10`, env),
+          ]);
+
+          for (const item of [clans, tournaments]) {
+            if (item.status !== "fulfilled" || !item.value.ok) continue;
+
+            try {
+              const data = await item.value.json();
+              const list = Array.isArray(data) ? data : (data.items || []);
+
+              for (const entry of list.slice(0, 10)) {
+                results.push({
+                  type: item === clans ? "clan" : "tournament",
+                  tag: entry.tag,
+                  name: entry.name || "Unknown",
+                  data: entry,
+                });
+              }
+            } catch {}
+          }
+        }
+
+        return new Response(JSON.stringify(results.slice(0, 20)), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+
+
+      // =========================================================
       // PLAYER
       // =========================================================
 
