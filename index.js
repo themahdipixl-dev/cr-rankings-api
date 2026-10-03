@@ -569,6 +569,37 @@ export default {
 
 
       // =========================================================
+      // DECK ANALYSIS
+      // =========================================================
+
+      if (path === "/api/decks") {
+        const response = await fetch(
+          "https://raw.githubusercontent.com/themahdipixl-dev/Deck-Analysis/main/data/pol-decks.json",
+          {
+            cf: {
+              cacheTtl: 300,
+              cacheEverything: true,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          return errorResponse("Deck analysis data is temporarily unavailable.", 502);
+        }
+
+        const data = await response.json();
+
+        return new Response(JSON.stringify(data), {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "public, max-age=300",
+          },
+        });
+      }
+
+
+      // =========================================================
       // CARDS
       // =========================================================
 
