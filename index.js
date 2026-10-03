@@ -3,20 +3,82 @@
 const BASE_URL = "https://proxy.royaleapi.dev/v1";
 
 async function callApi(path, env) {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      Authorization: `Bearer ${env.CR_API_TOKEN}`,
-    },
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
-  const data = await response.json();
+  try {
+    const response = await fetch(BASE_URL + path, {
+      headers: {
+        Authorization: "Bearer " + env.CR_API_TOKEN,
+        Accept: "application/json",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+    });
 
-  return new Response(JSON.stringify(data), {
-    status: response.status,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    const text = await response.text();
+    let data = null;
+
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const message =
+        data?.reason ||
+        data?.message ||
+        data?.error ||
+        "Upstream API returned HTTP " + response.status;
+
+      return new Response(
+        JSON.stringify({
+          error: String(message),
+          upstreamStatus: response.status,
+        }),
+        {
+          status: response.status,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (data === null) {
+      return new Response(
+        JSON.stringify({
+          error: "Upstream API returned an empty or invalid JSON response.",
+        }),
+        {
+          status: 502,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify(data), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    const isTimeout = error?.name === "AbortError";
+
+    return new Response(
+      JSON.stringify({
+        error: isTimeout
+          ? "Upstream API request timed out."
+          : (error?.message || "Upstream API request failed."),
+      }),
+      {
+        status: isTimeout ? 504 : 502,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function errorResponse(message, status = 400) {
